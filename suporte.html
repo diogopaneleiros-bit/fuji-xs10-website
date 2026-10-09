@@ -1,0 +1,124 @@
+<?php
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/db.php';
+
+$db = getDb();
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $name = trim($_POST['name'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $satisfaction = trim($_POST['satisfaction'] ?? '');
+    $message = trim($_POST['message'] ?? '');
+
+    if ($name !== '' && $email !== '' && $satisfaction !== '') {
+        $stmt = $db->prepare('INSERT INTO survey_responses (name, email, satisfaction, message) VALUES (:name, :email, :satisfaction, :message)');
+        $stmt->bindValue(':name', $name, SQLITE3_TEXT);
+        $stmt->bindValue(':email', $email, SQLITE3_TEXT);
+        $stmt->bindValue(':satisfaction', $satisfaction, SQLITE3_TEXT);
+        $stmt->bindValue(':message', $message, SQLITE3_TEXT);
+        $stmt->execute();
+        $success = true;
+    } else {
+        $success = false;
+    }
+}
+?>
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fuji X-S10 | Suporte</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;600;500&family=Montserrat:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="header">
+        <div class="container-header">
+            <div class="logo"><h1>FUJI X-S10</h1></div>
+            <nav class="nav-menu">
+                <a class="nav-btn" href="index.html">Início</a>
+                <a class="nav-btn" href="camera.html">Câmera</a>
+                <a class="nav-btn" href="lentes.html">Lentes</a>
+                <a class="nav-btn" href="acessorios.html">Acessórios</a>
+                <a class="nav-btn active" href="suporte.html">Suporte</a>
+                <a class="nav-btn" href="onde-comprar.html">Onde Comprar</a>
+            </nav>
+            <div class="login-section">
+                <a class="login-btn" href="login.php">Login</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content page-layout support-page">
+        <section class="page-banner compact">
+            <div class="banner-text">
+                <p class="eyebrow">Suporte</p>
+                <h2>Assistência e dúvidas</h2>
+                <p>Encontre ajuda, respostas rápidas e envie o seu feedback.</p>
+            </div>
+        </section>
+
+        <section class="support-grid">
+            <div class="support-card">
+                <h3>FAQs</h3>
+                <ul>
+                    <li>Como configurar a Fuji X-S10 pela primeira vez?</li>
+                    <li>Qual a melhor lente para fotografia de viagem?</li>
+                    <li>Como usar o vídeo em 4K sem vibrações?</li>
+                    <li>O que fazer se a câmara não liga?</li>
+                </ul>
+            </div>
+            <div class="support-card">
+                <h3>Contactos</h3>
+                <p>Email: suporte@fujixs10.com</p>
+                <p>Chat: 24/7</p>
+                <p>Telefone: +351 210 000 111</p>
+            </div>
+        </section>
+
+        <section class="survey-section">
+            <h3>Questionário de satisfação</h3>
+            <?php if (isset($success)): ?>
+                <div class="alert success"><?= $success ? 'Obrigado pelo feedback!' : 'Preencha corretamente os campos obrigatórios.' ?></div>
+            <?php endif; ?>
+
+            <form method="post" action="suporte.html" class="survey-form">
+                <label>
+                    Nome
+                    <input type="text" name="name" required>
+                </label>
+                <label>
+                    Email
+                    <input type="email" name="email" required>
+                </label>
+                <label>
+                    Nível de satisfação
+                    <select name="satisfaction" required>
+                        <option value="">Selecione</option>
+                        <option value="Excelente">Excelente</option>
+                        <option value="Boa">Boa</option>
+                        <option value="Média">Média</option>
+                        <option value="Pouco satisfeito">Pouco satisfeito</option>
+                    </select>
+                </label>
+                <label>
+                    Comentários
+                    <textarea name="message" rows="5" placeholder="Partilhe a sua experiência..."></textarea>
+                </label>
+                <button class="primary-btn" type="submit">Enviar resposta</button>
+            </form>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section"><h4>Sobre</h4><p>Website dedicado à Fuji X-S10</p></div>
+            <div class="footer-section"><h4>Contacto</h4><p>Email: info@fujixs10.com</p><p>Telefone: +351 210 000 000</p></div>
+            <div class="footer-section"><h4>Redes</h4><p><a href="#">Instagram</a> | <a href="#">YouTube</a> | <a href="#">X</a></p></div>
+            <div class="footer-section"><h4>Legal</h4><p><a href="#">Privacidade</a> | <a href="#">Termos</a></p></div>
+        </div>
+        <div class="footer-bottom"><p>© 2024 Fuji X-S10</p></div>
+    </footer>
+</body>
+</html>

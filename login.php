@@ -1,142 +1,88 @@
 <?php
-require __DIR__ . '/php/db.php';
+require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/db.php';
 
-if (isset($_GET['action']) && $_GET['action'] === 'logout') {
-    session_unset();
-    session_destroy();
-    header('Location: /login.php');
-    exit;
-}
-
-$pageTitle = 'Login';
+session_start();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $db = getDbConnection();
-    $action = $_POST['action'] ?? 'login';
+    $username = trim($_POST['username'] ?? '');
+    $password = $_POST['password'] ?? '';
 
-    if ($action === 'register') {
-        $name = trim($_POST['name'] ?? '');
-        $email = strtolower(trim($_POST['email'] ?? ''));
-        $password = $_POST['password'] ?? '';
+    $db = getDb();
+    $stmt = $db->prepare('SELECT * FROM users WHERE username = :username LIMIT 1');
+    $stmt->bindValue(':username', $username, SQLITE3_TEXT);
+    $result = $stmt->execute();
+    $user = $result->fetchArray(SQLITE3_ASSOC);
 
-        if ($name === '' || $email === '' || strlen($password) < 6) {
-            $error = 'Preenche todos os campos e usa pelo menos 6 caracteres na palavra-passe.';
-        } else {
-            $existing = $db->prepare('SELECT id FROM users WHERE email = :email');
-            $existing->bindValue(':email', $email, SQLITE3_TEXT);
-            $result = $existing->execute()->fetchArray(SQLITE3_ASSOC);
-
-            if ($result) {
-                $error = 'Este email já está registado.';
-            } else {
-                $hashed = password_hash($password, PASSWORD_DEFAULT);
-                $insert = $db->prepare('INSERT INTO users (name, email, password) VALUES (:name, :email, :password)');
-                $insert->bindValue(':name', $name, SQLITE3_TEXT);
-                $insert->bindValue(':email', $email, SQLITE3_TEXT);
-                $insert->bindValue(':password', $hashed, SQLITE3_TEXT);
-                $insert->execute();
-
-                $userResult = $db->prepare('SELECT id, name, email, profile_image FROM users WHERE email = :email');
-                $userResult->bindValue(':email', $email, SQLITE3_TEXT);
-                $user = $userResult->execute()->fetchArray(SQLITE3_ASSOC);
-
-                $_SESSION['user'] = $user;
-                $track = $db->prepare('INSERT INTO login_activity (user_id, email, ip_address) VALUES (:user_id, :email, :ip)');
-                $track->bindValue(':user_id', $user['id'], SQLITE3_INTEGER);
-                $track->bindValue(':email', $email, SQLITE3_TEXT);
-                $track->bindValue(':ip', $_SERVER['REMOTE_ADDR'] ?? 'unknown', SQLITE3_TEXT);
-                $track->execute();
-
-                header('Location: /conta.php');
-                exit;
-            }
-        }
+    if ($user && password_verify($password, $user['password_hash'])) {
+        $_SESSION['user_id'] = $user['id'];
+        $_SESSION['role'] = $user['role'];
+        header('Location: account.php');
+        exit;
     }
 
-    if ($action === 'login') {
-        $email = strtolower(trim($_POST['email'] ?? ''));
-        $password = $_POST['password'] ?? '';
-
-        $stmt = $db->prepare('SELECT id, name, email, password, profile_image FROM users WHERE email = :email');
-        $stmt->bindValue(':email', $email, SQLITE3_TEXT);
-        $user = $stmt->execute()->fetchArray(SQLITE3_ASSOC);
-
-        if (!$user || !password_verify($password, $user['password'])) {
-            $error = 'Credenciais inválidas. Tenta novamente.';
-        } else {
-            $_SESSION['user'] = [
-                'id' => $user['id'],
-                'name' => $user['name'],
-                'email' => $user['email'],
-                'profile_image' => $user['profile_image'],
-            ];
-
-            $track = $db->prepare('INSERT INTO login_activity (user_id, email, ip_address) VALUES (:user_id, :email, :ip)');
-            $track->bindValue(':user_id', $user['id'], SQLITE3_INTEGER);
-            $track->bindValue(':email', $email, SQLITE3_TEXT);
-            $track->bindValue(':ip', $_SERVER['REMOTE_ADDR'] ?? 'unknown', SQLITE3_TEXT);
-            $track->execute();
-
-            header('Location: /conta.php');
-            exit;
-        }
-    }
+    $error = 'Credenciais inválidas.';
 }
-
-require __DIR__ . '/partials/header.php';
 ?>
-
-<main class="login-shell">
-    <div class="auth-card">
-        <div class="auth-tabs">
-            <button type="button" class="auth-tab active" data-target="login">Entrar</button>
-            <button type="button" class="auth-tab" data-target="register">Registar</button>
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Fuji X-S10</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@700;600;500&family=Montserrat:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header class="header">
+        <div class="container-header">
+            <div class="logo"><h1>FUJI X-S10</h1></div>
+            <nav class="nav-menu">
+                <a class="nav-btn" href="index.html">Início</a>
+                <a class="nav-btn" href="camera.html">Câmera</a>
+                <a class="nav-btn" href="lentes.html">Lentes</a>
+                <a class="nav-btn" href="acessorios.html">Acessórios</a>
+                <a class="nav-btn" href="suporte.html">Suporte</a>
+                <a class="nav-btn" href="onde-comprar.html">Onde Comprar</a>
+            </nav>
+            <div class="login-section">
+                <a class="login-btn white" href="index.html">Voltar</a>
+            </div>
         </div>
+    </header>
 
-        <?php if (!empty($error)): ?>
-            <div class="notice error"><?= htmlspecialchars($error) ?></div>
-        <?php endif; ?>
-
-        <div class="auth-segment">
-            <form class="auth-form active" data-form="login" method="post">
-                <input type="hidden" name="action" value="login">
-                <div class="form-grid">
-                    <div class="field full">
-                        <label for="login-email">Email</label>
-                        <input id="login-email" type="email" name="email" placeholder="nome@email.com" required>
-                    </div>
-                    <div class="field full">
-                        <label for="login-password">Palavra-passe</label>
-                        <input id="login-password" type="password" name="password" placeholder="••••••••" required>
-                    </div>
-                </div>
-                <div class="form-actions">
-                    <button class="btn btn-primary" type="submit">Entrar</button>
-                </div>
+    <main class="main-content login-page">
+        <div class="login-box">
+            <h2>Entrar na conta</h2>
+            <?php if (isset($error)): ?>
+                <div class="alert error"><?= htmlspecialchars($error) ?></div>
+            <?php endif; ?>
+            <form method="post" action="login.php" class="login-form">
+                <label>
+                    Nome de utilizador
+                    <input type="text" name="username" required>
+                </label>
+                <label>
+                    Palavra-passe
+                    <input type="password" name="password" required>
+                </label>
+                <button type="submit" class="primary-btn">Entrar</button>
             </form>
-
-            <form class="auth-form" data-form="register" method="post">
-                <input type="hidden" name="action" value="register">
-                <div class="form-grid">
-                    <div class="field full">
-                        <label for="register-name">Nome</label>
-                        <input id="register-name" type="text" name="name" placeholder="O teu nome" required>
-                    </div>
-                    <div class="field full">
-                        <label for="register-email">Email</label>
-                        <input id="register-email" type="email" name="email" placeholder="nome@email.com" required>
-                    </div>
-                    <div class="field full">
-                        <label for="register-password">Palavra-passe</label>
-                        <input id="register-password" type="password" name="password" placeholder="Mínimo 6 caracteres" required>
-                    </div>
-                </div>
-                <div class="form-actions">
-                    <button class="btn btn-primary" type="submit">Criar conta</button>
-                </div>
-            </form>
+            <div class="login-meta">
+                <p>Utilizador admin: admin</p>
+                <p>Senha admin: admin123</p>
+            </div>
         </div>
-    </div>
-</main>
+    </main>
 
-<?php require __DIR__ . '/partials/footer.php'; ?>
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section"><h4>Sobre</h4><p>Website dedicado à Fuji X-S10</p></div>
+            <div class="footer-section"><h4>Contacto</h4><p>Email: info@fujixs10.com</p><p>Telefone: +351 210 000 000</p></div>
+            <div class="footer-section"><h4>Redes</h4><p><a href="#">Instagram</a> | <a href="#">YouTube</a> | <a href="#">X</a></p></div>
+            <div class="footer-section"><h4>Legal</h4><p><a href="#">Privacidade</a> | <a href="#">Termos</a></p></div>
+        </div>
+        <div class="footer-bottom"><p>© 2024 Fuji X-S10</p></div>
+    </footer>
+</body>
+</html>

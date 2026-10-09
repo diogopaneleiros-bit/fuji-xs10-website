@@ -1,33 +1,32 @@
-# Fuji X-S10 Guide
+document.addEventListener('DOMContentLoaded', function () {
+    const toggleBtn = document.getElementById('toggleProfileMenu');
+    const profileMenu = document.getElementById('profileMenu');
 
-Site informativo e completo sobre a Fujifilm X-S10, com páginas para:
-- Início
-- Câmera
-- Lentes
-- Acessórios
-- Suporte
-- Onde comprar
-- Login
-- Conta do utilizador
-- Dashboard de respostas do questionário
+    if (toggleBtn && profileMenu) {
+        toggleBtn.addEventListener('click', function () {
+            profileMenu.classList.toggle('open');
+        });
+    }
 
-## Tecnologias
-- HTML
-- CSS
-- JavaScript
-- PHP
-- SQLite
+    const mapPins = document.querySelectorAll('.map-pin');
+    const mapInfo = document.getElementById('mapInfo');
 
-## Como executar
-1. Coloca o projeto num servidor PHP local.
-2. Certifica-te de que o diretório tem permissões de escrita para criar a base de dados `data/fuji_xs10.db`.
-3. Abre `http://localhost/index.php`.
+    if (mapPins.length && mapInfo) {
+        mapPins.forEach(function (pin) {
+            pin.addEventListener('click', function () {
+                const country = pin.dataset.country;
+                const price = pin.dataset.price;
+                const store = pin.dataset.store;
+                const link = pin.dataset.link || '#';
 
-## Funcionalidades incluídas
-- Navegação com botões animados
-- Login e registo com base de dados SQLite
-- Registo de logins e respostas do questionário
-- Área da conta com upload de foto de perfil
-- Mapa interativo com pontos por país
-- Página de suporte com questionário de satisfação
-- Painel de respostas em dashboard
+                mapInfo.innerHTML = `
+                    <h3>${country}</h3>
+                    <p><strong>Preço:</strong> ${price}</p>
+                    <p><strong>Loja:</strong> ${store}</p>
+                    <p><strong>Disponibilidade:</strong> Em stock</p>
+                    <p><a href="${link}" class="primary-btn">Ver loja</a></p>
+                `;
+            });
+        });
+    }
+});
